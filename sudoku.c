@@ -52,7 +52,7 @@ void printSudokuSol(Sudoku* s){
   for (int i = 0; i < s->len; ++i) {
     for (int j = 0; j < s->len; ++j) {
       if(j % 3 ==0) printf("|");
-      printf("%d ", s->solution[i][j] | s->data[i][j]);
+      printf("%d ", s->solution[i][j]);// | s->data[i][j]);
     }
     printf("\n");
     if( (i+1) % 3 == 0){
@@ -232,8 +232,8 @@ byte getNumsInCol(Sudoku *s, byte col, byte* nums, byte sz){
   return cnt;
 }
 // adds number to cell
-byte addNumberSq(Sudoku *s, byte sqNum, byte idx, byte* nums, byte sz, byte w){
-  byte n = 0;
+int addNumberSq(Sudoku *s, byte sqNum, byte idx, byte* nums, byte sz, byte w){
+  int n = -1;
   byte sqrow = (sqNum / 3) * 3;
   byte sqcol = (sqNum * 3) % 9;
   byte hardSol = w == 0;
@@ -250,7 +250,8 @@ byte addNumberSq(Sudoku *s, byte sqNum, byte idx, byte* nums, byte sz, byte w){
       return i;
     }
   }
-  printf("SHOULD NOT GET HERE!!!! \t SQUARE: %i \t INDEX: %i\n", sqNum+1, idx);
+  // printf("SHOULD NOT GET HERE!!!! \t SQUARE: %i \t INDEX: %i\n", sqNum+1, idx);
+  // add first missing value to square!
   return n;
 }
 void modifyWeights(byte **nums, byte *weigths, byte sz){
@@ -282,6 +283,34 @@ void resetWeigths(byte **nums, byte *weigths, byte sz){
     }
   }
 }
+// byte* getWeights(sudoku *s byte square, byte sz){
+//   byte* indexes = (byte*)malloc(sizeof(byte) * sz);
+//   byte* weigths = (byte*)malloc(sizeof(byte) * sz);
+//   byte* notUsed = getNumsInSq(s, index, sz, indexes);
+//   byte **nums = allocByteArr(sz);
+//   byte sqrow = (index / 3) * 3;
+//   byte sqcol = (index * 3) % 9;
+//   for (int i = 0; i < sz; ++i){
+//     weigths[i] = sz;
+//     memcpy(nums[i], notUsed, sizeof(byte) * sz);
+//     weigths[i] -= getNumsInRow(s, sqrow + (indexes[i] / 3), nums[i], sz);
+//     weigths[i] -= getNumsInCol(s, sqcol + (indexes[i] % 3), nums[i], sz);
+//     // for (int k = 0; k < sz; ++k)
+//     // {
+//     //   printf("%i\t", nums[i][k]);
+//     // }
+//     // printf("\n");
+//     if(weigths[i] == 1){ //use as hard sol, should reduce problem size!
+//       addNumberSq(s, index, indexes[i], nums[i], sz, 0);
+//       free(notUsed);
+//       free(indexes);
+//       free(weigths);
+//       freeByteArr(nums);
+//       printf("FOUND FIXED!!!\n");
+//       return fillSqPrbs(s, index, sz - 1);
+//     }
+//   }
+// }
 void fillSqPrbs(Sudoku *s, byte index, byte sz){
   byte* indexes = (byte*)malloc(sizeof(byte) * sz);
   byte* weigths = (byte*)malloc(sizeof(byte) * sz);
@@ -305,19 +334,21 @@ void fillSqPrbs(Sudoku *s, byte index, byte sz){
       free(indexes);
       free(weigths);
       freeByteArr(nums);
-      // if(index==1) printf("FOUND FIXED!!!\n");
       return fillSqPrbs(s, index, sz - 1);
     }
   }
-  // printf("\n------------\n");
-  modifyWeights(nums, weigths, sz);
+  // modifyWeights(nums, weigths, sz);
   byte *order = getSortedIndexes(weigths, sz, MINSORT);
 
   for (int i = 0; i < sz; ++i)
   {
-    resetWeigths(nums, weigths, sz);
+    // resetWeigths(nums, weigths, sz);
     byte r_i = order[i]; //real index
-    byte n = addNumberSq(s, index, indexes[r_i], nums[r_i], sz, weigths[r_i]);
+    int n = addNumberSq(s, index, indexes[r_i], nums[r_i], sz, weigths[r_i]);
+    if(n == -1) {
+      // printf("BAD SEQUENCE, TRY AGAIN!\n");
+      return fillSqPrbs(s, index, sz - 1);
+    }
     weigths[r_i] = 0;
     for (int j = 0; j < sz; ++j)
     {
@@ -325,7 +356,7 @@ void fillSqPrbs(Sudoku *s, byte index, byte sz){
       nums[j][n] = 0;
     }
     free(order);
-    modifyWeights(nums, weigths, sz);
+    // modifyWeights(nums, weigths, sz);
     order = getSortedIndexes(weigths, sz, MINSORT);
   }
   free(order);
@@ -354,7 +385,7 @@ byte constructiveSolution(Sudoku *s){
   for (int i = 0; i < s->len; ++i)
   {
     byte index = sqOrder[0][i], weigth = sqOrder[1][index];
-    // printf("SQUARE %i :\t", index+1);
+    // printf("SQUARE %i :\n", index+1);
     fillSqPrbs(s, index, s->len - weigth);
   }
   free(sqOrder[0]);
@@ -402,7 +433,7 @@ void testSolutions2Opt(Sudoku *s, int sq, int *count, SudokuSearchItem *opts){
       {
         byte n2 = s->solution[j/3 + n_row][j%3 + n_col];
         if(n2 != 0 && n2 != n1){
-          printf("Can switch %i with %i\n", n1, n2);
+          // printf("Can switch %i with %i, SQ : %i\n", n1, n2, sq);
           opts[*count].square = sq;
           opts[*count].from = i;
           opts[*count].to = j;
@@ -463,7 +494,7 @@ void localSearchSolution(Sudoku *s){
   //do for every square, max new solutions per square(9 choose 2) => 36
   // total 324 all sudoku
   int z = 0;
-  for (z = 0; z < 1; ++z)
+  for (z = 0; z < 100; ++z)
   {
     int count = 0;
     for (int i = 0; i < s->len; ++i)
@@ -471,10 +502,11 @@ void localSearchSolution(Sudoku *s){
       testSolutions2Opt(s, i, &count, opts);
     }
     byte *order = getSortedOpts(opts, count, MINSORT);
-    for (int i = 0; i < count; ++i)
-    {
-      if(z >= 4)printf("PESO ITER %i : %i\n", z, opts[order[i]].weigth);
-    }
+    // for (int i = 0; i < count; ++i)
+    // {
+    //   printf("PESO ITER %i : %i\n", z, opts[order[i]].weigth);
+    // }
+    if(opts[order[0]].weigth >= s->err) break;
     applySolutions2Opt(s, &opts[order[0]]);
     // printSudokuSol(s);
     // printf("ITER %i NUEVO PESO : %i\n\n", z, opts[order[0]].weigth);
