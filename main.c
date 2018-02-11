@@ -21,7 +21,7 @@ int main(int argc, const char** argv) {
   int c = evalSolution(s);
   printf("Constructive: %i\n", c);
   // printf("*********************\n");
-  localSearchSolution(s);
+  // localSearchSolution(s);
   // printSudokuSol(s);
   c = evalSolution(s);
   printf("Iterative %i\n", c);

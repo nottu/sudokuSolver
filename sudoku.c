@@ -12,6 +12,13 @@ Sudoku* newSudoku(byte len){
   s->len = len;
   s->data = allocByteArr(len);
   s->solution = allocByteArr(len);
+  for (int i = 0; i < len; ++i)
+  {
+    for (int j = 0; j < len; ++j)
+    {
+      s->solution[i][j] = 0;
+    }
+  }
   return s;
 }
 Sudoku* readSudokuFromFile(const char* fileName, byte len){
@@ -65,6 +72,7 @@ int rowConflicts(Sudoku *s, byte row){
   int conflicts = 0;
   byte *nums = (byte *)malloc(sizeof(byte) * s->len);
   for (int i = 0; i < s->len; ++i) nums[i] = 0;
+
   for (byte j = 0; j < s->len; ++j){
     nums[(s->data[row][j] | s->solution[row][j]) - 1]++;
   }
@@ -170,7 +178,7 @@ byte** getSqOrder(Sudoku *s){
     sqWeigth[i] = n_sq;
   }
   byte *indexes = getSortedIndexes(sqWeigth, s->len, MAXSORT);
-  byte **sqOrder = (byte**)malloc(sizeof(byte) * 2);
+  byte **sqOrder = (byte**)malloc(sizeof(byte*) * 2);
   sqOrder[1] = sqWeigth;
   sqOrder[0] = indexes;
   return sqOrder;
