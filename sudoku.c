@@ -245,7 +245,20 @@ void fillSqPrbs(Sudoku *s, byte index, byte sz){
   freeByteArr(nums);
 }
 
+byte getNumFreeSpaces(Sudoku *s){
+  byte cnt = 0;
+  for (int i = 0; i < s->len; ++i)
+  {
+    for (int j = 0; j < s->len; ++j){
+      cnt += (s->data[i][j] == 0 ? 1 : 0);
+    }
+  }
+  return cnt;
+}
+
 void constructiveSolution(Sudoku *s){
+  byte freesp = getNumFreeSpaces(s);
+  // printf("Number of Free Spaces\t%i\n", freesp);
   byte **sqOrder = getSqOrder(s);
   // should check free spaces before and after... if changed, re-do
   for (int i = 0; i < s->len; ++i)
@@ -257,6 +270,7 @@ void constructiveSolution(Sudoku *s){
   free(sqOrder[0]);
   free(sqOrder[1]);
   free(sqOrder);
+  if(freesp - getNumFreeSpaces(s)) return constructiveSolution(s);
 }
 /* Sudoku Evaluator */
 int rowConflicts(Sudoku *s, byte row){

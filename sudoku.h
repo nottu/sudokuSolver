@@ -18,6 +18,7 @@ void freeSudoku(Sudoku* s);
 void printSudoku(Sudoku* s);
 void printSudokuSol(Sudoku* s);
 
+byte getNumFreeSpaces(Sudoku *s);
 void constructiveSolution(Sudoku* s);
 
 int evalSolution(Sudoku *s);
