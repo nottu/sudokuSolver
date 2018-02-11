@@ -11,6 +11,7 @@ typedef struct {
   byte **data;
   byte **solution;
   byte len; //sudoku are square, max val is equal to length - 1
+  byte err;
 } Sudoku;
 
 Sudoku* readSudokuFromFile(const char* fileName, byte len);
@@ -19,7 +20,15 @@ void printSudoku(Sudoku* s);
 void printSudokuSol(Sudoku* s);
 
 byte getNumFreeSpaces(Sudoku *s);
-void constructiveSolution(Sudoku* s);
+byte constructiveSolution(Sudoku* s);
+void localSearchSolution(Sudoku *s);
+typedef struct {
+  byte square;
+  byte from;
+  byte to;
+  byte weigth;
+} SudokuSearchItem;
+
 
 int evalSolution(Sudoku *s);
 #endif //SUDOKU_SUDOKU_H
