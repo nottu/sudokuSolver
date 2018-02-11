@@ -8,8 +8,13 @@ int main(int argc, const char** argv) {
   // srand (time(NULL));
   Sudoku *s = readSudokuFromFile(argv[1], 9);
   printSudoku(s);
-
+  printf("*********************\n");
   constructiveSolution(s);
+  // printSudoku(s);
+  printf("*********************\n");
+  printSudokuSol(s);
+  int c = evalSolution(s);
+  printf("%i\n", c);
   freeSudoku(s);
   return 0;
 }

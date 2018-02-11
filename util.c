@@ -3,7 +3,7 @@
 #include "util.h"
 
 /* Alloc square array*/
-byte **allocByteArr(byte sz){
+byte** allocByteArr(byte sz){
   byte **mtx = (byte**)malloc(sizeof(byte*) * sz);
   mtx[0] = (byte*)malloc(sizeof(byte) * sz * sz);
   for (byte i = 1; i < sz; ++i) {

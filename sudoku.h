@@ -16,6 +16,9 @@ typedef struct {
 Sudoku* readSudokuFromFile(const char* fileName, byte len);
 void freeSudoku(Sudoku* s);
 void printSudoku(Sudoku* s);
+void printSudokuSol(Sudoku* s);
 
 void constructiveSolution(Sudoku* s);
+
+int evalSolution(Sudoku *s);
 #endif //SUDOKU_SUDOKU_H

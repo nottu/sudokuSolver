@@ -3,7 +3,7 @@
 typedef unsigned short byte;
 typedef enum sortType { MINSORT, MAXSORT} SortType;
 
-byte **allocByteArr(byte sz);
+byte** allocByteArr(byte sz);
 void printByteArr(byte ** arr, byte sz);
 void freeByteArr(byte** arr);
 #endif

@@ -48,7 +48,20 @@ void printSudoku(Sudoku* s){
   }
 }
 
-byte *getSortedIndexes( byte* arr, byte len, SortType s){
+void printSudokuSol(Sudoku* s){
+  for (int i = 0; i < s->len; ++i) {
+    for (int j = 0; j < s->len; ++j) {
+      if(j % 3 ==0) printf("|");
+      printf("%d ", s->solution[i][j] | s->data[i][j]);
+    }
+    printf("\n");
+    if( (i+1) % 3 == 0){
+      printf("--------------------\n");
+    }
+  }
+}
+/** Sudoku Constructive Solution Algorithm **/
+byte* getSortedIndexes( byte* arr, byte len, SortType s){
   byte *indexes = (byte*)malloc(sizeof(byte) * len);
   for (byte i = 0; i < len; ++i) indexes[i] = i;
   for (byte i = 0; i < len-1; ++i)
@@ -73,7 +86,6 @@ byte *getSortedIndexes( byte* arr, byte len, SortType s){
   // }
   return indexes;
 }
-
 byte** getSqOrder(Sudoku *s){
   byte *sqWeigth = (byte*)malloc(sizeof(byte) * s->len);
   // Indexes
@@ -98,8 +110,7 @@ byte** getSqOrder(Sudoku *s){
   sqOrder[0] = indexes;
   return sqOrder;
 }
-
-byte *getNumsInSq(Sudoku *s, byte index, byte sz, byte* indexes){
+byte* getNumsInSq(Sudoku *s, byte index, byte sz, byte* indexes){
   byte *nums = (byte*)malloc(sizeof(byte) * s->len);
   for (int i = 0; i < s->len; ++i) nums[i] = i+1;
   byte sqrow = (index/3)*3;
@@ -138,7 +149,7 @@ byte getNumsInRow(Sudoku *s, byte row, byte* nums, byte sz){
       }
     }
   }
-  return sz - cnt;
+  return cnt;
 }
 // marks as 0 the nums already used in column (only "hard truths")
 byte getNumsInCol(Sudoku *s, byte col, byte* nums, byte sz){
@@ -155,42 +166,156 @@ byte getNumsInCol(Sudoku *s, byte col, byte* nums, byte sz){
       }
     }
   }
-  return sz - cnt;
+  return cnt;
+}
+// adds number to cell
+byte addNumberSq(Sudoku *s, byte sqNum, byte idx, byte* nums, byte sz, byte w){
+  byte n = 0;
+  byte sqrow = (sqNum / 3) * 3;
+  byte sqcol = (sqNum * 3) % 9;
+  byte hardSol = w == 0;
+  // byte hardSol = 0;
+  
+  for (int i = 0; i < sz; ++i)
+  {
+    if(nums[i] && (hardSol ||!(rand() % w--))){ // && only executes second part if the first passes
+      s->solution[sqrow + (idx / 3)][sqcol + (idx % 3)] = nums[i];
+      if(hardSol) s->data[sqrow + (idx / 3)][sqcol + (idx % 3)] = nums[i];
+      return i;
+    }
+  }
+  printf("SHOULD NOT GET HERE!!!! \t SQUARE: %i \t INDEX: %i\n", sqNum+1, idx);
+  return n;
 }
 
 void fillSqPrbs(Sudoku *s, byte index, byte sz){
-  sz = s->len - sz;
   byte* indexes = (byte*)malloc(sizeof(byte) * sz);
-  byte* weigth = (byte*)malloc(sizeof(byte) * sz);
+  byte* weigths = (byte*)malloc(sizeof(byte) * sz);
   byte* notUsed = getNumsInSq(s, index, sz, indexes);
   //stores possible nums for cell
   byte **nums = allocByteArr(sz);
   byte sqrow = (index / 3) * 3;
   byte sqcol = (index * 3) % 9;
+  // printf("\nSQUARE : %i\t\t", index+1);
+  // for (int i = 0; i < sz; ++i) printf("%i\t", notUsed[i]);
+  // printf("\t\t %i \n\n", sz);
   for (int i = 0; i < sz; ++i){
+    weigths[i] = sz;
     memcpy(nums[i], notUsed, sizeof(byte) * sz);
-    getNumsInRow(s, sqrow + (indexes[i] / 3), nums[i], sz);
-    weigth[i] = getNumsInCol(s, sqcol + (indexes[i] % 3), nums[i], sz);
+    weigths[i] -= getNumsInRow(s, sqrow + (indexes[i] / 3), nums[i], sz);
+    weigths[i] -= getNumsInCol(s, sqcol + (indexes[i] % 3), nums[i], sz);
+    if(weigths[i] == 1){ //use as hard sol, should reduce problem size!
+      addNumberSq(s, index, indexes[i], nums[i], sz, 0);
+      free(notUsed);
+      free(indexes);
+      free(weigths);
+      freeByteArr(nums);
+      return fillSqPrbs(s, index, sz - 1);
+    }
+  }
+  // printByteArr(nums, sz);
+  byte *order = getSortedIndexes(weigths, sz, MINSORT);
+  for (int i = 0; i < sz; ++i)
+  {
+    byte r_i = order[i]; //real index
+    // printf("\t\t\t");
+    // for (int j = 0; j < sz; ++j) printf("%i\t", nums[r_i][j]);
+    // printf("\t weight: %i\n", weigths[r_i]);
+  }
+  // printf("------------------------------------------------------------------------------------------------------------------\n");
+  for (int i = 0; i < sz; ++i)
+  {
+    byte r_i = order[i]; //real index
+    // printf("\t\t\t");
+    // for (int j = 0; j < sz; ++j) printf("%i\t", nums[r_i][j]);
+    // printf("\t weight: %i\n", weigths[r_i]);
+    byte n = addNumberSq(s, index, indexes[r_i], nums[r_i], sz, weigths[r_i]);
+    // printf("PLACED :%i\n", nums[r_i][n]);
+    weigths[r_i] = 0;
+    for (int j = i; j < sz; ++j)
+    {
+      if(nums[j][n]) weigths[j] = weigths[j] ? weigths[j] - 1 : weigths[j];
+      nums[j][n] = 0;
+    }
+    order = getSortedIndexes(weigths, sz, MINSORT);
   }
   free(notUsed);
-  printByteArr(nums, sz);
-
   free(indexes);
-  free(weigth);
+  free(weigths);
   freeByteArr(nums);
 }
 
-void constructiveSolution(Sudoku* s){
+void constructiveSolution(Sudoku *s){
   byte **sqOrder = getSqOrder(s);
-  #warning solo hace 1
-  for (int i = 0; i < 1; ++i)
+  // should check free spaces before and after... if changed, re-do
+  for (int i = 0; i < s->len; ++i)
   {
     byte index = sqOrder[0][i], weigth = sqOrder[1][index];
     // printf("INDEX %i :\t", index);
-    fillSqPrbs(s, index, weigth);
+    fillSqPrbs(s, index, s->len - weigth);
   }
   free(sqOrder[0]);
   free(sqOrder[1]);
   free(sqOrder);
 }
-//Sudoku Evaluator
+/* Sudoku Evaluator */
+int rowConflicts(Sudoku *s, byte row){
+  int conflicts = 0;
+  byte *nums = (byte *)malloc(sizeof(byte) * s->len);
+  for (int i = 0; i < s->len; ++i) nums[i] = 0;
+  for (byte j = 0; j < s->len; ++j){
+    nums[(s->data[row][j] | s->solution[row][j]) - 1]++;
+  }
+  // printf("Row Items : %i\n", row+1);
+  for (int i = 0; i < s->len; ++i)
+  {
+    nums[i] = nums[i] ? nums[i] - 1 : 0;
+  }
+  for (int i = 0; i < s->len; ++i)
+  {
+    byte val = s->data[row][i];
+    if(val) nums[val - 1] *= 100;
+  }
+  for (int i = 0; i < s->len; ++i)
+  {
+    // printf("%i\t", nums[i]);
+    conflicts += nums[i];
+  }
+  // printf("\t TOTAL:%i \n", conflicts);
+  return conflicts;
+}
+int colConflicts(Sudoku *s, byte col){
+  int conflicts = 0;
+  byte *nums = (byte *)malloc(sizeof(byte) * s->len);
+  for (int i = 0; i < s->len; ++i) nums[i] = 0;
+  for (byte j = 0; j < s->len; ++j){
+    nums[(s->data[j][col] | s->solution[j][col]) - 1]++;
+  }
+  // printf("Col Items : %i\n", col+1);
+  for (int i = 0; i < s->len; ++i)
+  {
+    nums[i] = nums[i] ? nums[i] - 1 : 0;
+  }
+  for (int i = 0; i < s->len; ++i)
+  {
+    byte val = s->data[i][col];
+    if(val) nums[val - 1] *= 100;
+  }
+  for (int i = 0; i < s->len; ++i)
+  {
+    // printf("%i\t", nums[i]);
+    conflicts += nums[i];
+  }
+  // printf("\t TOTAL:%i \n", conflicts);
+  return conflicts;
+}
+int evalSolution(Sudoku *s){
+  int conflicts = 0;
+  for (int i = 0; i < s->len; ++i)
+  // for (int i = 0; i < 1; ++i)
+  {
+    conflicts += rowConflicts(s, i);
+    conflicts += colConflicts(s, i);
+  }
+  return conflicts;
+}
