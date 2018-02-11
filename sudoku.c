@@ -3,21 +3,15 @@
 //
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "sudoku.h"
 
 //Basic Sudoku Methods
 Sudoku* newSudoku(byte len){
   Sudoku *s = (Sudoku*)malloc(sizeof(Sudoku));
   s->len = len;
-  s->data = (byte**)malloc(sizeof(byte*) * len);
-  s->data[0] = (byte*)malloc(sizeof(byte) * len * len);
-
-  s->solution = (byte**)malloc(sizeof(byte*) * len);
-  s->solution[0] = (byte*)malloc(sizeof(byte) * len * len);
-  for (int i = 1; i < s->len; ++i) {
-    s->data[i] = s->data[i - 1] + len;
-    s->solution[i] = s->solution[i - 1] + len;
-  }
+  s->data = allocByteArr(len);
+  s->solution = allocByteArr(len);
   return s;
 }
 Sudoku* readSudokuFromFile(const char* fileName, byte len){
@@ -37,10 +31,8 @@ Sudoku* readSudokuFromFile(const char* fileName, byte len){
   return s;
 }
 void freeSudoku(Sudoku* s){
-  free(s->data[0]);
-  free(s->data);
-  free(s->solution[0]);
-  free(s->solution);
+  freeByteArr(s->data);
+  freeByteArr(s->solution);
   free(s);
 }
 void printSudoku(Sudoku* s){
@@ -75,10 +67,10 @@ byte *getSortedIndexes( byte* arr, byte len, SortType s){
     }
   }
   /** Test sorting **/
-  for (int i = 0; i < len; ++i)
-  {
-    printf("%i : %i\n", indexes[i], arr[indexes[i]]);
-  }
+  // for (int i = 0; i < len; ++i)
+  // {
+  //   printf("%i : %i\n", indexes[i], arr[indexes[i]]);
+  // }
   return indexes;
 }
 
@@ -107,34 +99,91 @@ byte** getSqOrder(Sudoku *s){
   return sqOrder;
 }
 
-void fillSqPrbs(Sudoku *s, byte index, byte sz){
-  // printf("%i : %i : %i\n", index, sz, s->len - sz);
-  byte lsz = s->len - sz;
-  byte **nums = (byte**) malloc(sizeof(byte) * lsz);
-  nums[0] = (byte*) malloc(sizeof(byte) * lsz * lsz);
-
+byte *getNumsInSq(Sudoku *s, byte index, byte sz, byte* indexes){
+  byte *nums = (byte*)malloc(sizeof(byte) * s->len);
+  for (int i = 0; i < s->len; ++i) nums[i] = i+1;
   byte sqrow = (index/3)*3;
   byte sqcol = (index*3)%9;
-  // for each free index, set nums that can be put
-  byte x = 0;
+  byte idx = 0;
   for (byte i = 0; i < s->len; ++i){
-    byte i_idx = i%3 + sqrow, j_idx = i/3 + sqcol;
+    byte i_idx = i/3 + sqrow, j_idx = i%3 + sqcol;
     byte num = s->data[i_idx][j_idx];
-    if( !num ){
-      // printf("(%i, %i) : %i ", i_idx, j_idx, num);
-      for (int j = 0; j < lsz; ++j)
+    if( num ){
+      nums[num-1] = 0;
+    } else {
+      indexes[idx++] = i;
+    }
+  }
+  byte *notUsed = (byte*)malloc(sizeof(byte) * sz);
+  idx = 0;
+  for (int i = 0; i < s->len; ++i)
+  {
+    if(nums[i]) notUsed[idx++] = nums[i];
+  }
+  free(nums);
+  return notUsed;
+}
+// marks as 0 the nums already used in row (only "hard truths")
+byte getNumsInRow(Sudoku *s, byte row, byte* nums, byte sz){
+  byte cnt = 0;
+  for (byte i = 0; i < s->len; ++i){
+    if(s->data[row][i]){
+      for (byte j = 0; j < sz; ++j)
       {
-        // nums[x++][j] = num;
+        if(nums[j] == s->data[row][i]){
+          nums[j] = 0;
+          cnt++;
+          break;
+        }
       }
     }
   }
-  free(nums[0]);
-  free(nums);
+  return sz - cnt;
+}
+// marks as 0 the nums already used in column (only "hard truths")
+byte getNumsInCol(Sudoku *s, byte col, byte* nums, byte sz){
+  byte cnt = 0;
+  for (byte i = 0; i < s->len; ++i){
+    if(s->data[i][col]){
+      for (byte j = 0; j < sz; ++j)
+      {
+        if(nums[j] == s->data[i][col]){
+          nums[j] = 0;
+          cnt++;
+          break;
+        }
+      }
+    }
+  }
+  return sz - cnt;
+}
+
+void fillSqPrbs(Sudoku *s, byte index, byte sz){
+  sz = s->len - sz;
+  byte* indexes = (byte*)malloc(sizeof(byte) * sz);
+  byte* weigth = (byte*)malloc(sizeof(byte) * sz);
+  byte* notUsed = getNumsInSq(s, index, sz, indexes);
+  //stores possible nums for cell
+  byte **nums = allocByteArr(sz);
+  byte sqrow = (index / 3) * 3;
+  byte sqcol = (index * 3) % 9;
+  for (int i = 0; i < sz; ++i){
+    memcpy(nums[i], notUsed, sizeof(byte) * sz);
+    getNumsInRow(s, sqrow + (indexes[i] / 3), nums[i], sz);
+    weigth[i] = getNumsInCol(s, sqcol + (indexes[i] % 3), nums[i], sz);
+  }
+  free(notUsed);
+  printByteArr(nums, sz);
+
+  free(indexes);
+  free(weigth);
+  freeByteArr(nums);
 }
 
 void constructiveSolution(Sudoku* s){
   byte **sqOrder = getSqOrder(s);
-  for (int i = 0; i < s->len; ++i)
+  #warning solo hace 1
+  for (int i = 0; i < 1; ++i)
   {
     byte index = sqOrder[0][i], weigth = sqOrder[1][index];
     // printf("INDEX %i :\t", index);
