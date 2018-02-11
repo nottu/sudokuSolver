@@ -6,11 +6,11 @@
 int main(int argc, const char** argv) {
   if(argc < 2) return 1;
   int a = time(NULL);
-  // printf("%d\n", a);
+  printf("%d\n", a);
   srand (a);
-  // srand (1518373154);
+  srand (1518389031);
   Sudoku *s = readSudokuFromFile(argv[1], 9);
-  // printSudoku(s);
+  printSudoku(s);
   // printf("*********************\n");
   // printf("Free Spaces: Before %i\t After %i\n", 
   //   getNumFreeSpaces(s), constructiveSolution(s));
@@ -18,13 +18,13 @@ int main(int argc, const char** argv) {
   // printSudoku(s);
   // printf("*********************\n");
   // printSudokuSol(s);
-  int c = evalSolution(s);
-  printf("Constructive: %i\n", c);
+  // int c = evalSolution(s);
+  // printf("Constructive: %i\n", c);
   // printf("*********************\n");
   // localSearchSolution(s);
   // printSudokuSol(s);
-  c = evalSolution(s);
-  printf("Iterative %i\n", c);
+  // c = evalSolution(s);
+  // printf("Iterative %i\n", c);
   freeSudoku(s);
   return 0;
 }

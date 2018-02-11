@@ -59,7 +59,7 @@ void printSudokuSol(Sudoku* s){
   for (int i = 0; i < s->len; ++i) {
     for (int j = 0; j < s->len; ++j) {
       if(j % 3 ==0) printf("|");
-      printf("%d ", s->solution[i][j]);// | s->data[i][j]);
+      printf("%d ", s->data[i][j] ? s->data[i][j] : s->solution[i][j]);// | s->data[i][j]);
     }
     printf("\n");
     if( (i+1) % 3 == 0){
@@ -70,11 +70,13 @@ void printSudokuSol(Sudoku* s){
 /** Sudoku Evaluator **/
 int rowConflicts(Sudoku *s, byte row){
   int conflicts = 0;
-  byte *nums = (byte *)malloc(sizeof(byte) * s->len);
+  byte *nums = (byte*)malloc(sizeof(byte) * s->len);
   for (int i = 0; i < s->len; ++i) nums[i] = 0;
 
   for (byte j = 0; j < s->len; ++j){
-    nums[(s->data[row][j] | s->solution[row][j]) - 1]++;
+    byte elem = s->data[row][j] ? s->data[row][j] : s->solution[row][j];
+    // printf("ELEM %i\n", elem - 1);
+    nums[elem - 1]++;
   }
   // printf("Row Items : %i\n", row+1);
   for (int i = 0; i < s->len; ++i)
@@ -100,7 +102,8 @@ int colConflicts(Sudoku *s, byte col){
   byte *nums = (byte *)malloc(sizeof(byte) * s->len);
   for (int i = 0; i < s->len; ++i) nums[i] = 0;
   for (byte j = 0; j < s->len; ++j){
-    nums[(s->data[j][col] | s->solution[j][col]) - 1]++;
+    byte elem = s->data[j][col] ? s->data[j][col] : s->solution[j][col];
+    nums[elem - 1]++;
   }
   // printf("Col Items : %i\n", col+1);
   for (int i = 0; i < s->len; ++i)
@@ -123,6 +126,7 @@ int colConflicts(Sudoku *s, byte col){
 }
 int evalSolution(Sudoku *s){
   int conflicts = 0;
+  printSudokuSol(s);
   for (int i = 0; i < s->len; ++i)
   // for (int i = 0; i < 1; ++i)
   {
@@ -192,9 +196,15 @@ byte* getNumsInSq(Sudoku *s, byte index, byte sz, byte* indexes){
   for (byte i = 0; i < s->len; ++i){
     byte i_idx = i/3 + sqrow, j_idx = i%3 + sqcol;
     byte num = s->data[i_idx][j_idx];
-    if( num ){
+    if(num){
       nums[num-1] = 0;
     } else {
+      if(idx >= sz){
+        printf("FATAL ERROR, SQUARE %i, SIZE  %i\n", index, sz);
+        printf("%i %i\n", i_idx, j_idx);
+        printSudoku(s);
+        exit(1);
+      }
       indexes[idx++] = i;
     }
   }
@@ -265,6 +275,9 @@ int addNumberSq(Sudoku *s, byte sqNum, byte idx, byte* nums, byte sz, byte w){
   return n;
 }
 void fillSqPrbs(Sudoku *s, byte index, byte sz){
+  if(sz == 0) {
+    return;
+  }
   byte* indexes = (byte*)malloc(sizeof(byte) * sz);
   byte* weigths = (byte*)malloc(sizeof(byte) * sz);
   byte* notUsed = getNumsInSq(s, index, sz, indexes);
@@ -301,7 +314,11 @@ void fillSqPrbs(Sudoku *s, byte index, byte sz){
     int n = addNumberSq(s, index, indexes[r_i], nums[r_i], sz, weigths[r_i]);
     if(n == -1) {
       // printf("BAD SEQUENCE, TRY AGAIN!\n");
-      return fillSqPrbs(s, index, sz - 1);
+      free(order);
+      free(indexes);
+      free(weigths);
+      freeByteArr(nums);
+      return fillSqPrbs(s, index, sz);
     }
     weigths[r_i] = 0;
     for (int j = 0; j < sz; ++j)
@@ -329,7 +346,46 @@ byte getNumFreeSpaces(Sudoku *s){
   }
   return cnt;
 }
-
+void fillRemaining0s(Sudoku *s){
+  byte *nums = (byte*) malloc(sizeof(byte) * s->len);
+  byte hasZeros = 0;
+  for (byte i = 0; i < s->len; ++i)
+  {
+    for (int k = 0; k < s->len; ++k) nums[k] = k+1;
+    byte n_sq = 0;
+    //note: 2/3 * 3 => 0, i/3 * 3 => 0,3,6
+    byte n_row = (i/3)*3, n_col = (i*3)%9;
+    for (byte j = 0; j < s->len; ++j)
+    {
+      byte elem = s->data[j/3 + n_row][j%3 + n_col];
+      if(elem == 0) elem = s->solution[j/3 + n_row][j%3 + n_col];
+      if(elem == 0) {
+        hasZeros = 1;
+      } else nums[elem - 1] = 0;
+    }
+    if(!hasZeros) continue;
+    hasZeros = 0;
+    // printf("ZEROS REMAINING! SQ %i\n", i);
+    for (byte j = 0; j < s->len; ++j)
+    {
+      byte elem = s->data[j/3 + n_row][j%3 + n_col];
+      if(elem == 0) elem = s->solution[j/3 + n_row][j%3 + n_col];
+      if(elem == 0) {
+        // printf("FOUND ZERO ELEM\n");
+        for (int k = 0; k < s->len; ++k)
+        {
+          if(nums[k] != 0){
+            // printf("CHANGING ZERO ELEM TO %i\n", nums[k]);
+            s->solution[j/3 + n_row][j%3 + n_col] = nums[k];
+            nums[k] = 0;
+            break;
+          }
+        }
+      }
+    }
+  }
+  free(nums);
+}
 byte constructiveSolution(Sudoku *s){
   byte freesp = getNumFreeSpaces(s);
   // printf("Number of Free Spaces\t%i\n", freesp);
@@ -338,13 +394,19 @@ byte constructiveSolution(Sudoku *s){
   for (int i = 0; i < s->len; ++i)
   {
     byte index = sqOrder[0][i], weigth = sqOrder[1][index];
-    // printf("SQUARE %i :\n", index+1);
+    // printf("SQUARE %i weigth %i\n", index+1, weigth);
     fillSqPrbs(s, index, s->len - weigth);
   }
   free(sqOrder[0]);
   free(sqOrder[1]);
   free(sqOrder);
-  // if(freesp - getNumFreeSpaces(s)) return constructiveSolution(s);
+
+  if(freesp - getNumFreeSpaces(s)) {
+    printf("RECURSIVE CALL\n");
+    return constructiveSolution(s);
+  }
+  // check if square has 0s
+  // fillRemaining0s(s);
   return getNumFreeSpaces(s);
 }
 
