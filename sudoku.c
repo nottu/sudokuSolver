@@ -126,7 +126,7 @@ int colConflicts(Sudoku *s, byte col){
 }
 int evalSolution(Sudoku *s){
   int conflicts = 0;
-  printSudokuSol(s);
+//  printSudokuSol(s);
   for (int i = 0; i < s->len; ++i)
   // for (int i = 0; i < 1; ++i)
   {
@@ -205,8 +205,14 @@ byte* getNumsInSq(Sudoku *s, byte index, byte sz, byte* indexes){
         printSudoku(s);
         exit(1);
       }
+//      printf("idx : %i", idx);
       indexes[idx++] = i;
     }
+  }
+  if(idx < sz){
+    printf("\nFATAL ERROR, SQUARE %i, SIZE  %i, IDX %i\n", index, sz, idx);
+    printSudoku(s);
+    exit(1);
   }
   byte *notUsed = (byte*)malloc(sizeof(byte) * sz);
   idx = 0;
@@ -287,7 +293,8 @@ void fillSqPrbs(Sudoku *s, byte index, byte sz){
   for (int i = 0; i < sz; ++i){
     weigths[i] = sz;
     memcpy(nums[i], notUsed, sizeof(byte) * sz);
-    weigths[i] -= getNumsInRow(s, sqrow + (indexes[i] / 3), nums[i], sz);
+    byte idx_i = indexes[i];
+    weigths[i] -= getNumsInRow(s, sqrow + (idx_i / 3), nums[i], sz);
     weigths[i] -= getNumsInCol(s, sqcol + (indexes[i] % 3), nums[i], sz);
     // for (int k = 0; k < sz; ++k)
     // {
@@ -311,13 +318,15 @@ void fillSqPrbs(Sudoku *s, byte index, byte sz){
   {
     // resetWeigths(nums, weigths, sz);
     byte r_i = order[i]; //real index
-    int n = addNumberSq(s, index, indexes[r_i], nums[r_i], sz, weigths[r_i]);
+    int n = -1;
+    if(weigths[r_i] > 0) n = addNumberSq(s, index, indexes[r_i], nums[r_i], sz, weigths[r_i]);
     if(n == -1) {
       // printf("BAD SEQUENCE, TRY AGAIN!\n");
       free(order);
       free(indexes);
       free(weigths);
       freeByteArr(nums);
+      if(sz == 4 && index == 8) printSudoku(s);
       return fillSqPrbs(s, index, sz);
     }
     weigths[r_i] = 0;
@@ -402,7 +411,7 @@ byte constructiveSolution(Sudoku *s){
   free(sqOrder);
 
   if(freesp - getNumFreeSpaces(s)) {
-    printf("RECURSIVE CALL\n");
+//    printf("RECURSIVE CALL\n");
     return constructiveSolution(s);
   }
   // check if square has 0s
@@ -531,6 +540,6 @@ void localSearchSolution(Sudoku *s){
     if(opts[order[0]].weigth == 0) break;
     free(order);
   }
-  printf("ITERATIONS %i\n", z);
+//  printf("ITERATIONS %i\n", z);
   free(opts);
 }

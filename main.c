@@ -8,9 +8,9 @@ int main(int argc, const char** argv) {
   int a = time(NULL);
   printf("%d\n", a);
   srand (a);
-  srand (1518389031);
+//  srand (1518388145);
   Sudoku *s = readSudokuFromFile(argv[1], 9);
-  printSudoku(s);
+//  printSudoku(s);
   // printf("*********************\n");
   // printf("Free Spaces: Before %i\t After %i\n", 
   //   getNumFreeSpaces(s), constructiveSolution(s));
@@ -18,13 +18,13 @@ int main(int argc, const char** argv) {
   // printSudoku(s);
   // printf("*********************\n");
   // printSudokuSol(s);
-  // int c = evalSolution(s);
-  // printf("Constructive: %i\n", c);
+   int c = evalSolution(s);
+   printf("Constructive: %i\n", c);
   // printf("*********************\n");
-  // localSearchSolution(s);
+   localSearchSolution(s);
   // printSudokuSol(s);
-  // c = evalSolution(s);
-  // printf("Iterative %i\n", c);
+   c = evalSolution(s);
+   printf("Iterative %i\n", c);
   freeSudoku(s);
   return 0;
 }
