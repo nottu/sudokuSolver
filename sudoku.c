@@ -527,12 +527,20 @@ void localSearchSolution(Sudoku *s){
     {
       testSolutions2Opt(s, i, &count, opts);
     }
+    if(count == 0){ //zero moves to make
+      free(opts);
+      return;
+    }
     byte *order = getSortedOpts(opts, count, MINSORT);
     // for (int i = 0; i < count; ++i)
     // {
     //   printf("PESO ITER %i : %i\n", z, opts[order[i]].weigth);
     // }
-    if(opts[order[0]].weigth >= s->err) break;
+    // printf("COUNT %i OPTS IDX %i\n",count, order[0]);
+    if(opts[order[0]].weigth >= s->err) {
+      free(order);
+      break;
+    }
     applySolutions2Opt(s, &opts[order[0]]);
     // printSudokuSol(s);
     // printf("ITER %i NUEVO PESO : %i\n\n", z, opts[order[0]].weigth);
